@@ -43,7 +43,7 @@ const emailRestablecer = async (datos) => {
       });
     // Información del email
     const info = await transport.sendMail({
-        from: '"Flider — Administrador de la Base de Datos" «xizhongyaoisw@gmail.com»',
+        from: '"Flider — Administrador de la Base de Datos" «arisuodelagtv@gmail.com»»',
         to: email,
         subject: "Flider — Restablecer contraseña",
         text: "Restablezca su contraseña en Flider",
@@ -56,7 +56,36 @@ const emailRestablecer = async (datos) => {
     })
 };
 
+// Email para compartir llave privada con el usuario
+const emailClave = async (datos) => {
+  const {email, nombre, key} = datos;
+
+  const transport = nodemailer.createTransport({
+      host: process.env.MASTER_H,
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.MASTER_EM,
+        pass: process.env.MASTER_P
+      }
+    });
+  // Información del email
+  const info = await transport.sendMail({
+      from: '"Flider — Administrador de la Base de Datos" «arisuodelagtv@gmail.com»»',
+      to: email,
+      subject: "Flider — Llave privada",
+      text: "Almacene su llave privada de Flider",
+      html: `
+      <p>Hola, ${nombre}, gracias por confirmar su cuenta en Flider.</p>
+      <p>Se le hará entrega de una clave privada para firmar sus documentos.</p>
+      <p>${nombre}, su clave privada es: ${key}</p>
+      <p>Si usted no estaba a la espera de este servicio, ignore este correo electrónico.</p>
+      `
+  })
+};
+
 export {
     emailRegistro,
-    emailRestablecer
+    emailRestablecer,
+    emailClave
 };

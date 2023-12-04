@@ -20,6 +20,11 @@ const usuarioSchema = mongoose.Schema({
         type: String,
         required: true,
         trim: true
+    },
+    public_key: {
+        type: String,
+        required: true,
+        trim: true
     }
 });
 
@@ -29,13 +34,13 @@ usuarioSchema.pre("save", async function(next){
         next();
     }
     const sha256 = crypto.createHash('sha256');
-    this.hashed_pw = sha256.update(this.hashed_pw).digest('hex');
+    this.hashed_pw = sha256.update(this.hashed_pw).digest('base64');
     next();
 });
 
 usuarioSchema.methods.comprobarPassword = async function(passwordForm) {
     const sha256 = crypto.createHash('sha256');
-    const hashedPasswordForm = sha256.update(passwordForm).digest('hex');
+    const hashedPasswordForm = sha256.update(passwordForm).digest('base64');
     return await this.hashed_pw === hashedPasswordForm;
 };
 

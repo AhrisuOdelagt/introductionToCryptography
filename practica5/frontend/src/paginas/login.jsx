@@ -29,6 +29,7 @@ const Login = () => {
       if (respuesta.status === 200) {
         localStorage.setItem('nombre', respuesta.data.usuario);
         localStorage.setItem('token', respuesta.data.token);
+        console.log(respuesta.data.main)
         window.location.href = respuesta.data.main;
       }
     } catch (error) {

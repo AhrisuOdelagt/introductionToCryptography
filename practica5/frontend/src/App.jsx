@@ -6,6 +6,8 @@ import OlvidePassword from "./paginas/OlvidePassword"
 import NuevoPassword from "./paginas/NuevoPassword"
 import ConfirmarCuenta from "./paginas/ConfirmarCuenta"
 import MainPage from "./paginas/MainPage"
+import Verificado from "./paginas/Verificado"
+import NoVerificado from "./paginas/NoVerificado"
 
 function App() {
 
@@ -19,6 +21,8 @@ function App() {
           <Route path="olvide-password/:token" element={<NuevoPassword/>} />
           <Route path="confirmar" element={<ConfirmarCuenta/>} />
           <Route path="main" element={<MainPage/>} />
+          <Route path="verificado" element={<Verificado/>} />
+          <Route path="no-verificado" element={<NoVerificado/>} />
         </Route>
       </Routes>
     </BrowserRouter>
