@@ -8,6 +8,9 @@ import ConfirmarCuenta from "./paginas/ConfirmarCuenta"
 import MainPage from "./paginas/MainPage"
 import Verificado from "./paginas/Verificado"
 import NoVerificado from "./paginas/NoVerificado"
+import CriptoClasica from "./paginas/CriptoClasica"
+import CriptoModerna from "./paginas/CriptoModerna"
+import CriptoTendencia from "./paginas/CriptoTendencia"
 
 function App() {
 
@@ -23,6 +26,9 @@ function App() {
           <Route path="main" element={<MainPage/>} />
           <Route path="verificado" element={<Verificado/>} />
           <Route path="no-verificado" element={<NoVerificado/>} />
+          <Route path="criptoclasica" element={<CriptoClasica/>} />
+          <Route path="criptomoderna" element={<CriptoModerna/>} />
+          <Route path="criptotendencia" element={<CriptoTendencia/>} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -11,6 +11,29 @@ const MainPage = () => {
   const [llavePrivada_1, setLlavePrivada_1] = useState('');
   const [llavePrivada_2, setLlavePrivada_2] = useState('');
   const [rutaArchivo, setRutaArchivo] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  // Manejador de cambio para el campo de carga de archivos
+  const handleFileChange = (event) => {
+    setSelectedFile(event.target.files[0]);
+    setRutaArchivo(event.target.value);
+  };
+
+  const readFileAsync = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+  
+      reader.onload = (event) => {
+        resolve(event.target.result);
+      };
+  
+      reader.onerror = (error) => {
+        reject(error);
+      };
+  
+      reader.readAsText(file);
+    });
+  };
 
   const validarEnvio_generarDocumento = async (e) => {
     e.preventDefault();
@@ -106,31 +129,49 @@ const MainPage = () => {
     const cabecera = {
       headers: {
         Authorization: `Bearer ${token}`
-      },
-      responseType: 'arraybuffer', // Asegúrate de que la respuesta sea tratada como un array de bytes
+      }
     };
-
+  
     if (llavePublica === "") {
       setMensajeRespuesta("El apartado de llave pública está vacío.");
-      console.log("El apartado de llave pública está vacío.")
+      console.log("El apartado de llave pública está vacío.");
       setTimeout(() => { setMensajeRespuesta('') }, 3000);
       return;
     }
-
-    if (rutaArchivo === "") {
-      setMensajeRespuesta("El apartado de Ruta de Archivo está vacío.");
-      console.log("El apartado de Ruta de Archivo está vacío.")
+  
+    // Validar si se está enviando un archivo
+    if (!selectedFile) {
+      setMensajeRespuesta("Por favor, coloque su archivo.");
+      console.log("Por favor, coloque su archivo.");
       setTimeout(() => { setMensajeRespuesta('') }, 3000);
       return;
     }
-
+  
     try {
-      const respuesta = await axios.post(verificacion, { public_key: llavePublica, file_path: rutaArchivo }, cabecera);
-      console.log(respuesta);
+      // Leer el contenido del archivo
+      const fileContent = await readFileAsync(selectedFile);
+  
+      // Enviar la información como JSON
+      const data = { public_key: llavePublica, file_content: fileContent };
+      const respuesta = await axios.post(verificacion, data, cabecera);
+  
       if (respuesta.status === 200) {
         window.location.href = respuesta.data.redirigir;
       }
     } catch (error) {
+      setMensajeRespuesta(error.response.data.msg);
+      setTimeout(() => { setMensajeRespuesta('') }, 3000);
+    }
+  };
+
+  const cerrar_sesion = async(e) => {
+    e.preventDefault();
+    try {
+      console.log("Cerrando sesión");
+      localStorage.clear();
+      window.location.href = "http://localhost:5173/";
+    } catch (error) {
+      console.log(error);
       setMensajeRespuesta(error.response.data.msg);
       setTimeout(() => { setMensajeRespuesta('') }, 3000);
     }
@@ -143,19 +184,29 @@ const MainPage = () => {
       </header>
       <main>
       <h1 className="text-2xl font-bold mb-4 text-gray-800">Bienvenid@ {localStorage.getItem("nombre")}</h1>
+      <div className="formulario p-8 bg-purple-500 rounded mt-10">
+        <form onSubmit={cerrar_sesion}>
+          <button
+            type="submit"
+            className="px-6 py-3 bg-purple-800 text-white rounded hover:bg-green-600"
+          >
+            Cerrar sesión
+          </button>
+        </form>
+      </div>
         <div className="formulario p-8 bg-green-500 rounded mt-10">
           <h2 className="text-2xl font-bold mb-4 text-gray-800">ETAPA II</h2>
           <ul>
             <li>
-              <a href="#">Criptografía Clásica</a>
+              <a href="http://localhost:5173/criptoclasica">Criptografía Clásica</a>
             </li>
             <br />
             <li>
-              <a href="#">Criptografía Moderna</a>
+              <a href="http://localhost:5173/criptomoderna">Criptografía Moderna</a>
             </li>
             <br />
             <li>
-              <a href="#">Tendencia Cripto</a>
+              <a href="http://localhost:5173/criptotendencia">Tendencia Cripto</a>
             </li>
           </ul>
           <br />
@@ -218,16 +269,14 @@ const MainPage = () => {
               value={llavePublica}
               onChange={(e) => setLlavePublica(e.target.value)}
               />
-              <label className="block mb-2 text-white" htmlFor="ruta">
-                Ruta de su archivo:
+              <label className="block mb-2 text-white" htmlFor="archivo">
+                Seleccione un archivo:
               </label>
               <input
-              className="w-full px-4 py-2 mb-4 rounded"
-              id="ruta"
-              type="text"
-              placeholder="Ruta de su archivo"
-              value={rutaArchivo}
-              onChange={(e) => setRutaArchivo(e.target.value)}
+                type="file"
+                accept=".txt"
+                onChange={handleFileChange}
+                className="w-full px-4 py-2 mb-4 rounded"
               />
               <button
               type="submit"
@@ -237,6 +286,7 @@ const MainPage = () => {
               </button>
               </form>
             </div>
+            
           </div>
         </div>
       </main>

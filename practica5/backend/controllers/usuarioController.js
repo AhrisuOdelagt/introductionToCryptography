@@ -220,6 +220,7 @@ const generarTexto = async (req, res) => {
     generarTXT(res, usuarioAutor.usuario, priv_key);
 };
 
+// Verificamos una firma
 const verificarFirma = async (req, res) => {
     try {
         // Autenticamos al usuario
@@ -228,59 +229,54 @@ const verificarFirma = async (req, res) => {
         const usuarioAutor = await Usuario.findOne({ email });
         if (!usuarioAutor) {
             const error = new Error("Este usuario no ha iniciado sesión");
-            return res.status(403).json({ msg: error.message });
+            throw error;
         }
 
         // Buscamos la llave pública
-        const { public_key, file_path } = req.body;
+        const { public_key, file_content } = req.body;
         const usuarioConLlave = await Usuario.findOne({ public_key });
         if (!usuarioConLlave) {
-            const error = new Error("No hay ningún usuario con esta llave.");
-            console.log("No hay ningún usuario con esta llave.")
-            return res.status(403).json({ msg: error.message });
+        const error = new Error("No hay ningún usuario con esta llave.");
+        console.log("No hay ningún usuario con esta llave.");
+        throw error;
         }
 
-        // Leemos el .txt
-        const txtContent = fs.readFileSync(file_path, "utf-8");
-        try {
-            console.log("Texto:", txtContent);
-            // Realizamos la verificación
-            const [contenido, firmaPart] = txtContent.split('Documento firmado por');
+        // Utilizamos el contenido del archivo en lugar de leer el .txt
+        const txtContent = file_content;
+        console.log("Texto:", txtContent);
 
-            // Limpiamos los espacios en blanco adicionales en la firma
-            const firma = firmaPart.split(' con la firma:')[1].trim();
-            const contenidoLimpio = contenido.replace(/\n\s+/g, '\n');
-            console.log("contenido: " + contenidoLimpio.trim());
-            console.log("firma: " + firma.trim());
+        // Realizamos la verificación
+        const [contenido, firmaPart] = txtContent.split('Documento firmado por');
 
-            // Verificamos
-            // Generamos el Hash para comparar
-            const hash = crypto.createHash('sha256');
-            hash.update(contenidoLimpio.trim());
-            const digest = hash.digest('base64');
-            console.log("Hash:", digest);
-            const publicKeyBuffer = Buffer.from(public_key, 'base64');
-            const signatureBuffer = Buffer.from(firma, 'base64');
-            const isSignatureValid = crypto.verify('RSA-SHA256', Buffer.from(contenidoLimpio.trim()), publicKeyBuffer, signatureBuffer);
+        // Limpiamos los espacios en blanco adicionales en la firma
+        const firma = firmaPart.split(' con la firma:')[1].trim();
+        const contenidoLimpio = contenido.replace(/\n\s+/g, '\n');
+        console.log("contenido: " + contenidoLimpio.trim());
+        console.log("firma: " + firma.trim());
 
-            // Verificamos si la firma es o no válida
-            if (isSignatureValid) {
-                console.log("\n" + "Verificación completa. Exitosa.")
-                res.json({ redirigir: "http://localhost:5173/verificado" });
-                console.log({ redirigir: "http://localhost:5173/verificado" })
-            }
-            else {
-                console.log("\n" + "Verificación completa. Fallida.")
-                res.json({ redirigir: "http://localhost:5173/no-verificado" });
-                console.log({ redirigir: "http://localhost:5173/no-verificado" })
-            }
-        } catch (error) {
-            console.error('Hubo un error en la lectura del archivo.', error);
-        return res.status(500).json({ msg: "Hubo un error en la lectura del archivo." });
+        // Verificamos
+        // Generamos el Hash para comparar
+        const hash = crypto.createHash('sha256');
+        hash.update(contenidoLimpio.trim());
+        const digest = hash.digest('base64');
+        console.log("Hash:", digest);
+        const publicKeyBuffer = Buffer.from(public_key, 'base64');
+        const signatureBuffer = Buffer.from(firma, 'base64');
+        const isSignatureValid = crypto.verify('RSA-SHA256', Buffer.from(contenidoLimpio.trim()), publicKeyBuffer, signatureBuffer);
+
+        // Verificamos si la firma es o no válida
+        if (isSignatureValid) {
+            console.log("\n" + "Verificación completa. Exitosa.")
+            res.json({ redirigir: "http://localhost:5173/verificado" });
+            console.log({ redirigir: "http://localhost:5173/verificado" })
+        } else {
+            console.log("\n" + "Verificación completa. Fallida.")
+            res.json({ redirigir: "http://localhost:5173/no-verificado" });
+            console.log({ redirigir: "http://localhost:5173/no-verificado" })
         }
     } catch (error) {
         console.error('Error during verification:', error);
-        return res.status(500).json({ msg: "Error interno del servidor" });
+        return res.status(500).json({ msg: error.message || "Error interno del servidor" });
     }
 };
 
