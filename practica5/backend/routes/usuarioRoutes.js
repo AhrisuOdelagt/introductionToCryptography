@@ -9,7 +9,10 @@ import {
     nuevoPassword,
     generarDocumento,
     generarTexto,
-    verificarFirma
+    verificarFirma,
+    secret_init,
+    public_init,
+    diffieHellman_end
 } from "../controllers/usuarioController.js";
 import checkAuth from "../middleware/checkAuth.js";
 
@@ -29,5 +32,10 @@ router.post("/main/generarDocumento", checkAuth, generarDocumento); // Generamos
 router.post("/main/generarTexto", checkAuth, generarTexto); // Generamos un archivo de texto firmado
 // Verificación del documento
 router.post("/main/verificar", checkAuth, verificarFirma);    // Ingresamos la llave a utilizar
+
+// Diffie-Hellman
+router.post("/main/diffie-hellman", checkAuth, secret_init);    // Iniciar secreto DH
+router.post("/main/diffie-hellman/public", checkAuth, public_init);    // Enviar llaves públicas DH
+router.post("/main/diffie-hellman/end", checkAuth, diffieHellman_end);    // Generamos clave AES-128 & IV
 
 export default router;

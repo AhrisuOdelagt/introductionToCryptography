@@ -1,7 +1,11 @@
 import Usuario from "../models/Usuario.js";
-import { emailRegistro,
+import { 
+    emailRegistro,
     emailRestablecer,
-    emailClave
+    emailClave,
+    emailSender_DH,
+    emailAddressee_DH,
+    emailPublicKeys_DH
 } from "../helpers/emails.js";
 import {
     generarJWT,
@@ -10,10 +14,15 @@ import {
 import jwt from "jsonwebtoken"
 import generarPDF from "../helpers/generarPDF.js";
 import generateRSAKeys from "../helpers/generateKeys.js";
-// import PDFParser from "pdf-parse";
-import fs from "fs";
 import crypto from "crypto";
 import generarTXT from "../helpers/generarTXT.js";
+import {
+    generarParametros_DH,
+    generarSecretos_DH,
+    generatePublicKeys_DH,
+    generateSharedKeys_DH
+} from "../helpers/diffie_hellman.js";
+import bigInt from "big-integer";
 
 // Autenticación y registro del usuario
 const registrarUsuario = async (req, res) => {
@@ -196,8 +205,8 @@ const generarDocumento = async (req, res) => {
         return res.status(403).json({msg: error.message});
     }
     // Generamos el archivo
-    const { priv_key } = req.body;
-    generarPDF(res, usuarioAutor.usuario, priv_key);
+    const { priv_key, content } = req.body;
+    generarPDF(res, usuarioAutor.usuario, priv_key, content);
 };
 
 // Generar archivo de texto
@@ -211,13 +220,13 @@ const generarTexto = async (req, res) => {
         return res.status(403).json({msg: error.message});
     }
     // Generamos el archivo
-    const { priv_key } = req.body;
+    const { priv_key, content } = req.body;
     // Verificamos que la llave privada no esté vacía
     if (priv_key == "") {
         const error = new Error("La llave privada está vacía");
         return res.status(403).json({msg: error.message});
     }
-    generarTXT(res, usuarioAutor.usuario, priv_key);
+    generarTXT(res, usuarioAutor.usuario, priv_key, content);
 };
 
 // Verificamos una firma
@@ -280,6 +289,152 @@ const verificarFirma = async (req, res) => {
     }
 };
 
+// Utilizar Diffie-Hellman
+const secret_init = async (req, res) => {
+    // Autenticamos al usuario
+    let email;
+    email = req.usuario.email;
+    const usuarioAutor = await Usuario.findOne({ email });
+    if (!usuarioAutor) {
+        const error = new Error("Este usuario no ha iniciado sesión");
+        throw error;
+    }
+
+    // Recibimos los parámetros desde el body
+    const { toEmail } = req.body;
+    email = toEmail;
+    // Verificamos que el email al que desamos enviar el secreto, exista
+    const destinatario = await Usuario.findOne({ email });
+    if (!destinatario) {
+        const error = new Error("Este correo no está registrado.");
+        return res.status(404).json({ msg: error.message });
+    }
+
+    // Aislamos ambos emails
+    const emailCreador = req.usuario.email;
+    const emailReceptor = destinatario.email;
+
+    try {
+        // Generamos los parámetros públicos de Diffie-Hellman
+        const public_parameters = generarParametros_DH();
+        const p = public_parameters[0].subtract(BigInt(2));
+        // Generamos los secretos para utilizar Diffie-Hellman
+        const a1 = generarSecretos_DH(p);
+        const a2 = generarSecretos_DH(p);
+        const b1 = generarSecretos_DH(p);
+        const b2 = generarSecretos_DH(p);
+
+        // Enviamos los parámetros por correo a cada una de las partes
+        // Usuario principal
+        emailSender_DH({
+            email: emailCreador,
+            nombre: usuarioAutor.usuario,
+            n: public_parameters[0].toString(),
+            g: public_parameters[1].toString(),
+            s1: a1.toString(),
+            s2: a2.toString()
+        });
+        // Usuario destino
+        emailAddressee_DH({
+            email: emailReceptor,
+            nombreRemitente: usuarioAutor.usuario,
+            nombreDestinatario: destinatario.usuario,
+            n: public_parameters[0].toString(),
+            g: public_parameters[1].toString(),
+            s1: b1.toString(),
+            s2: b2.toString()
+        });
+
+        // Retornamos un mensaje de éxito al usuario
+        res.json({ msg: "Se han enviado los correos con la información del secreto." });
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+const public_init = async (req, res) => {
+    // Autenticamos al usuario
+    let email;
+    email = req.usuario.email;
+    const usuarioAutor = await Usuario.findOne({ email });
+    if (!usuarioAutor) {
+        const error = new Error("Este usuario no ha iniciado sesión");
+        throw error;
+    }
+
+    // Recibimos los parámetros desde el body
+    const { toEmail, n, g, s1, s2 } = req.body;
+    email = toEmail;
+    // Verificamos que el email al que desamos enviar el secreto, exista
+    const destinatario = await Usuario.findOne({ email });
+    if (!destinatario) {
+        const error = new Error("Este correo no está registrado.");
+        return res.status(404).json({ msg: error.message });
+    }
+
+    try {
+        // Convertimos las entradas del usuario en BigInt
+        const n_big = bigInt(n);
+        const g_big = bigInt(g);
+        const s1_big = bigInt(s1);
+        const s2_big = bigInt(s2);
+
+        // Generamos las claves publicas de Diffie-Hellman
+        const ks1 = generatePublicKeys_DH(n_big, g_big, s1_big);
+        const ks2 = generatePublicKeys_DH(n_big, g_big, s2_big);
+
+        // Enviamos las claves públicas por correo al destinatario
+        emailPublicKeys_DH({
+            email: destinatario.email,
+            nombreRemitente: usuarioAutor.usuario,
+            nombreDestinatario: destinatario.usuario,
+            ksec1: ks1.toString(),
+            ksec2: ks2.toString()
+        });
+
+        // Retornamos un mensaje de éxito al usuario
+        res.json({ msg: "Se ha enviado el correo con las claves públicas exitosamente." });
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+const diffieHellman_end = async (req, res) => {
+    // Autenticamos al usuario
+    let email;
+    email = req.usuario.email;
+    const usuarioAutor = await Usuario.findOne({ email });
+    if (!usuarioAutor) {
+        const error = new Error("Este usuario no ha iniciado sesión");
+        throw error;
+    }
+
+    // Recibimos los parámetros desde el body
+    const {  n, s1, s2, ks1, ks2 } = req.body;
+
+    try {
+        // Convertimos las entradas del usuario en BigInt
+        const n_big = bigInt(n);
+        const s1_big = bigInt(s1);
+        const s2_big = bigInt(s2);
+        const ks1_big = bigInt(ks1);
+        const ks2_big = bigInt(ks2);
+
+        // Generamos la clave AES-128 y el IV
+        const k_AES = generateSharedKeys_DH(n_big, s1_big, ks1_big);
+        const k_IV = generateSharedKeys_DH(n_big, s2_big, ks2_big);
+
+        console.log("Claves generadas:");
+        console.log(`Clave AES: ${k_AES}`);
+        console.log(`IV: ${k_IV}`);
+
+        // Regresamos un mensaje de reafirmación
+        res.json({ msg: "Se han generado la clave AES-128 y el IV." });
+    } catch (error) {
+        console.log(error);
+    }
+};
+
 export {
     registrarUsuario,
     iniciarSesion,
@@ -289,5 +444,8 @@ export {
     nuevoPassword,
     generarDocumento,
     generarTexto,
-    verificarFirma
+    verificarFirma,
+    secret_init,
+    public_init,
+    diffieHellman_end
 };

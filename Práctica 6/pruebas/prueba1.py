@@ -10,19 +10,22 @@ import sys  # Para cerrar el programa
 def crear_parametros():
     p = getPrime(128)
     g = 3   # Puede modificarse
-    privada_alice = int.from_bytes(get_random_bytes(16), byteorder='big') % (p - 2)
-    privada_bob = int.from_bytes(get_random_bytes(16), byteorder='big') % (p - 2)
+    privada_alice = int.from_bytes(get_random_bytes(16), byteorder="big") % (p - 2)
+    privada_bob = int.from_bytes(get_random_bytes(16), byteorder="big") % (p - 2)
     return privada_alice, privada_bob, p, g
 
+# Función para generar la clave pública (ka, kb)
 def calcular_clave_publica(g, privado, p):
     public_key = pow(g, privado, p)
     return public_key
 
+# Función para generar la clave compartida (k)
 def calcular_clave_compartida(private, public, p):
     shared_key = pow(public, private, p)
     AES_key = hex(shared_key)
     return AES_key
 
+# Función principal o main
 def main():
     print("Aplicación del algoritmo Diffie-Hellman")
     while True:
