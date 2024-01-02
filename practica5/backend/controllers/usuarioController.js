@@ -23,6 +23,9 @@ import {
     generateSharedKeys_DH
 } from "../helpers/diffie_hellman.js";
 import bigInt from "big-integer";
+import {
+    descifrarMensaje
+} from "../helpers/AES.js"
 
 // Autenticación y registro del usuario
 const registrarUsuario = async (req, res) => {
@@ -219,14 +222,31 @@ const generarTexto = async (req, res) => {
         const error = new Error("Este usuario no ha iniciado sesión");
         return res.status(403).json({msg: error.message});
     }
-    // Generamos el archivo
-    const { priv_key, content } = req.body;
+    // Leemos el JSON de entrada
+    const { priv_key, content, n_params, s1_params, s2_params, ks1_params, ks2_params } = req.body;
     // Verificamos que la llave privada no esté vacía
     if (priv_key == "") {
         const error = new Error("La llave privada está vacía");
         return res.status(403).json({msg: error.message});
     }
-    generarTXT(res, usuarioAutor.usuario, priv_key, content);
+
+    try {
+        // Convertimos las entradas del usuario en BigInt
+        const n_big = bigInt(n_params);
+        const s1_big = bigInt(s1_params);
+        const s2_big = bigInt(s2_params);
+        const ks1_big = bigInt(ks1_params);
+        const ks2_big = bigInt(ks2_params);
+
+        // Generamos la clave AES-128 y el IV
+        const k_AES = generateSharedKeys_DH(n_big, s1_big, ks1_big);
+        const k_IV = generateSharedKeys_DH(n_big, s2_big, ks2_big);
+
+        // Generamos el texto
+        generarTXT(res, usuarioAutor.usuario, priv_key, content, k_AES, k_IV);
+    } catch (error) {
+        console.log(error);
+    }
 };
 
 // Verificamos una firma
@@ -242,7 +262,7 @@ const verificarFirma = async (req, res) => {
         }
 
         // Buscamos la llave pública
-        const { public_key, file_content } = req.body;
+        const { public_key, file_content, n_params, s1_params, s2_params, ks1_params, ks2_params } = req.body;
         const usuarioConLlave = await Usuario.findOne({ public_key });
         if (!usuarioConLlave) {
         const error = new Error("No hay ningún usuario con esta llave.");
@@ -263,15 +283,33 @@ const verificarFirma = async (req, res) => {
         console.log("contenido: " + contenidoLimpio.trim());
         console.log("firma: " + firma.trim());
 
+        // Desciframos el contenido del archivo
+            // Convertimos las entradas del usuario en BigInt
+            const n_big = bigInt(n_params);
+            const s1_big = bigInt(s1_params);
+            const s2_big = bigInt(s2_params);
+            const ks1_big = bigInt(ks1_params);
+            const ks2_big = bigInt(ks2_params);
+            console.log("\nSe han leído los parámetros.")
+
+            // Generamos la clave AES-128 y el IV
+            const k_AES = generateSharedKeys_DH(n_big, s1_big, ks1_big);
+            const k_IV = generateSharedKeys_DH(n_big, s2_big, ks2_big);
+            console.log("\nSe han generado las claves.")
+
+            // Hallamos el texto original
+            const contenidoDescifrado = await descifrarMensaje(contenidoLimpio.trim(), k_AES, k_IV);
+            console.log("\nEl contenido de se ha descifrado.")
+
         // Verificamos
         // Generamos el Hash para comparar
         const hash = crypto.createHash('sha256');
-        hash.update(contenidoLimpio.trim());
+        hash.update(contenidoDescifrado.trim());
         const digest = hash.digest('base64');
         console.log("Hash:", digest);
         const publicKeyBuffer = Buffer.from(public_key, 'base64');
         const signatureBuffer = Buffer.from(firma, 'base64');
-        const isSignatureValid = crypto.verify('RSA-SHA256', Buffer.from(contenidoLimpio.trim()), publicKeyBuffer, signatureBuffer);
+        const isSignatureValid = crypto.verify('RSA-SHA256', Buffer.from(contenidoDescifrado.trim()), publicKeyBuffer, signatureBuffer);
 
         // Verificamos si la firma es o no válida
         if (isSignatureValid) {
@@ -363,7 +401,7 @@ const public_init = async (req, res) => {
     }
 
     // Recibimos los parámetros desde el body
-    const { toEmail, n, g, s1, s2 } = req.body;
+    const { toEmail, n_params, g_params, s1_params, s2_params } = req.body;
     email = toEmail;
     // Verificamos que el email al que desamos enviar el secreto, exista
     const destinatario = await Usuario.findOne({ email });
@@ -374,10 +412,10 @@ const public_init = async (req, res) => {
 
     try {
         // Convertimos las entradas del usuario en BigInt
-        const n_big = bigInt(n);
-        const g_big = bigInt(g);
-        const s1_big = bigInt(s1);
-        const s2_big = bigInt(s2);
+        const n_big = bigInt(n_params);
+        const g_big = bigInt(g_params);
+        const s1_big = bigInt(s1_params);
+        const s2_big = bigInt(s2_params);
 
         // Generamos las claves publicas de Diffie-Hellman
         const ks1 = generatePublicKeys_DH(n_big, g_big, s1_big);

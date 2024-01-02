@@ -11,6 +11,7 @@ import NoVerificado from "./paginas/NoVerificado"
 import CriptoClasica from "./paginas/CriptoClasica"
 import CriptoModerna from "./paginas/CriptoModerna"
 import CriptoTendencia from "./paginas/CriptoTendencia"
+import Diffie_Hellman from "./paginas/Diffie_Hellman"
 
 function App() {
 
@@ -29,6 +30,7 @@ function App() {
           <Route path="criptoclasica" element={<CriptoClasica/>} />
           <Route path="criptomoderna" element={<CriptoModerna/>} />
           <Route path="criptotendencia" element={<CriptoTendencia/>} />
+          <Route path="main/diffie_hellman" element={<Diffie_Hellman/>} />
         </Route>
       </Routes>
     </BrowserRouter>

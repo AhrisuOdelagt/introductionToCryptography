@@ -5,13 +5,25 @@ const generarTexto = "http://localhost:4444/api/usuarios/main/generarTexto";
 const verificacion = "http://localhost:4444/api/usuarios/main/verificar";
 
 const MainPage = () => {
+  // Generales
   const [mensajeRespuesta, setMensajeRespuesta] = useState('');
   const [llavePublica, setLlavePublica] = useState('');
-  const [llavePrivada_1, setLlavePrivada_1] = useState('');
   const [llavePrivada_2, setLlavePrivada_2] = useState('');
   const [rutaArchivo, setRutaArchivo] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [contenido, setContenido] = useState('');
+  // Diffie-Hellman para cifrar
+  const [n_1, setN_1] = useState('');
+  const [s1_1, setS1_1] = useState('');
+  const [s2_1, setS2_1] = useState('');
+  const [ks1_1, setKS1_1] = useState('');
+  const [ks2_1, setKS2_1] = useState('');
+  // Diffie-Hellman para descifrar
+  const [n_2, setN_2] = useState('');
+  const [s1_2, setS1_2] = useState('');
+  const [s2_2, setS2_2] = useState('');
+  const [ks1_2, setKS1_2] = useState('');
+  const [ks2_2, setKS2_2] = useState('');
 
   // Manejador de cambio para el campo de carga de archivos
   const handleFileChange = (event) => {
@@ -59,8 +71,51 @@ const MainPage = () => {
       return;
     }
 
+    if (n_1 === "") {
+      setMensajeRespuesta("No se escribió el parámetro n.");
+      console.log("No se escribió el parámetro n.")
+      setTimeout(() => { setMensajeRespuesta('') }, 3000);
+      return;
+    }
+
+    if (s1_1 === "") {
+      setMensajeRespuesta("No se escribió el parámetro s_1.");
+      console.log("No se escribió el parámetro s_1.")
+      setTimeout(() => { setMensajeRespuesta('') }, 3000);
+      return;
+    }
+
+    if (s2_1 === "") {
+      setMensajeRespuesta("No se escribió el parámetro s2.");
+      console.log("No se escribió el parámetro s2.")
+      setTimeout(() => { setMensajeRespuesta('') }, 3000);
+      return;
+    }
+
+    if (ks1_1 === "") {
+      setMensajeRespuesta("No se escribió el parámetro ks1.");
+      console.log("No se escribió el parámetro ks1.")
+      setTimeout(() => { setMensajeRespuesta('') }, 3000);
+      return;
+    }
+
+    if (ks2_1 === "") {
+      setMensajeRespuesta("No se escribió el parámetro ks2.");
+      console.log("No se escribió el parámetro ks2.")
+      setTimeout(() => { setMensajeRespuesta('') }, 3000);
+      return;
+    }
+
     try {
-      const respuesta = await axios.post(generarTexto, { priv_key: llavePrivada_2, content: contenido }, cabecera);
+      // Enviar la información como JSON
+      const data = { priv_key: llavePrivada_2,
+                    content: contenido,
+                    n_params: n_1,
+                    s1_params: s1_1,
+                    s2_params: s2_1,
+                    ks1_params: ks1_1,
+                    ks2_params: ks2_1 };
+      const respuesta = await axios.post(generarTexto, data, cabecera);
 
       if (respuesta.status === 200) {
         // Crear un Blob a partir de los datos del PDF
@@ -109,13 +164,54 @@ const MainPage = () => {
       setTimeout(() => { setMensajeRespuesta('') }, 3000);
       return;
     }
+
+    if (n_2 === "") {
+      setMensajeRespuesta("No se escribió el parámetro n.");
+      console.log("No se escribió el parámetro n.")
+      setTimeout(() => { setMensajeRespuesta('') }, 3000);
+      return;
+    }
+
+    if (s1_2 === "") {
+      setMensajeRespuesta("No se escribió el parámetro s_1.");
+      console.log("No se escribió el parámetro s_1.")
+      setTimeout(() => { setMensajeRespuesta('') }, 3000);
+      return;
+    }
+
+    if (s2_2 === "") {
+      setMensajeRespuesta("No se escribió el parámetro s2.");
+      console.log("No se escribió el parámetro s2.")
+      setTimeout(() => { setMensajeRespuesta('') }, 3000);
+      return;
+    }
+
+    if (ks1_2 === "") {
+      setMensajeRespuesta("No se escribió el parámetro ks1.");
+      console.log("No se escribió el parámetro ks1.")
+      setTimeout(() => { setMensajeRespuesta('') }, 3000);
+      return;
+    }
+
+    if (ks2_2 === "") {
+      setMensajeRespuesta("No se escribió el parámetro ks2.");
+      console.log("No se escribió el parámetro ks2.")
+      setTimeout(() => { setMensajeRespuesta('') }, 3000);
+      return;
+    }
   
     try {
       // Leer el contenido del archivo
       const fileContent = await readFileAsync(selectedFile);
   
       // Enviar la información como JSON
-      const data = { public_key: llavePublica, file_content: fileContent };
+      const data = { public_key: llavePublica, 
+                    file_content: fileContent,
+                    n_params: n_2,
+                    s1_params: s1_2,
+                    s2_params: s2_2,
+                    ks1_params: ks1_2,
+                    ks2_params: ks2_2 };
       const respuesta = await axios.post(verificacion, data, cabecera);
   
       if (respuesta.status === 200) {
@@ -161,6 +257,10 @@ const MainPage = () => {
           <h2 className="text-2xl font-bold mb-4 text-gray-800">ETAPA II</h2>
           <ul>
             <li>
+              <a href="http://localhost:5173/main/diffie_hellman">Iniciar un secreto Diffie-Hellman</a>
+            </li>
+            <br />
+            <li>
               <a href="http://localhost:5173/criptoclasica">Criptografía Clásica</a>
             </li>
             <br />
@@ -199,6 +299,61 @@ const MainPage = () => {
                 value={contenido}
                 onChange={(e) => setContenido(e.target.value)}
               />
+              <label className="block mb-2 text-white" htmlFor="n_value_1">
+                Valor de n:
+              </label>
+              <input
+                className="w-full px-4 py-2 mb-4 rounded"
+                id="n_value_1"
+                type="text"
+                placeholder="Su parámetro público n"
+                value={n_1}
+                onChange={(e) => setN_1(e.target.value)}
+              />
+              <label className="block mb-2 text-white" htmlFor="secret_value_1">
+                Mi secreto de Clave AES:
+              </label>
+              <input
+                className="w-full px-4 py-2 mb-4 rounded"
+                id="secret_value_1"
+                type="text"
+                placeholder="Secreto de Clave AES"
+                value={s1_1}
+                onChange={(e) => setS1_1(e.target.value)}
+              />
+              <label className="block mb-2 text-white" htmlFor="secret_value_2">
+                Mi secreto de IV:
+              </label>
+              <input
+                className="w-full px-4 py-2 mb-4 rounded"
+                id="secret_value_2"
+                type="text"
+                placeholder="Secreto de IV"
+                value={s2_1}
+                onChange={(e) => setS2_1(e.target.value)}
+              />
+              <label className="block mb-2 text-white" htmlFor="public_value_1">
+                Clave pública para Clave AES (De la otra entidad):
+              </label>
+              <input
+                className="w-full px-4 py-2 mb-4 rounded"
+                id="public_value_1"
+                type="text"
+                placeholder="Clave pública para Clave AES (no la mía)"
+                value={ks1_1}
+                onChange={(e) => setKS1_1(e.target.value)}
+              />
+              <label className="block mb-2 text-white" htmlFor="public_value_2">
+                Clave pública para IV (De la otra entidad):
+              </label>
+              <input
+                className="w-full px-4 py-2 mb-4 rounded"
+                id="public_value_2"
+                type="text"
+                placeholder="Clave pública para IV (no la mía)"
+                value={ks2_1}
+                onChange={(e) => setKS2_1(e.target.value)}
+              />
               <button
                 type="submit"
                 className="px-6 py-3 bg-green-700 text-white rounded hover:bg-green-600"
@@ -230,6 +385,61 @@ const MainPage = () => {
                 accept=".txt"
                 onChange={handleFileChange}
                 className="w-full px-4 py-2 mb-4 rounded"
+              />
+              <label className="block mb-2 text-white" htmlFor="n_value_2">
+                Valor de n:
+              </label>
+              <input
+                className="w-full px-4 py-2 mb-4 rounded"
+                id="n_value_2"
+                type="text"
+                placeholder="Su parámetro público n"
+                value={n_2}
+                onChange={(e) => setN_2(e.target.value)}
+              />
+              <label className="block mb-2 text-white" htmlFor="secret_value_3">
+                Mi secreto de Clave AES:
+              </label>
+              <input
+                className="w-full px-4 py-2 mb-4 rounded"
+                id="secret_value_3"
+                type="text"
+                placeholder="Secreto de Clave AES"
+                value={s1_2}
+                onChange={(e) => setS1_2(e.target.value)}
+              />
+              <label className="block mb-2 text-white" htmlFor="secret_value_4">
+                Mi secreto de IV:
+              </label>
+              <input
+                className="w-full px-4 py-2 mb-4 rounded"
+                id="secret_value_4"
+                type="text"
+                placeholder="Secreto de IV"
+                value={s2_2}
+                onChange={(e) => setS2_2(e.target.value)}
+              />
+              <label className="block mb-2 text-white" htmlFor="public_value_3">
+                Clave pública para Clave AES (De la otra entidad):
+              </label>
+              <input
+                className="w-full px-4 py-2 mb-4 rounded"
+                id="public_value_3"
+                type="text"
+                placeholder="Clave pública para Clave AES (no la mía)"
+                value={ks1_2}
+                onChange={(e) => setKS1_2(e.target.value)}
+              />
+              <label className="block mb-2 text-white" htmlFor="public_value_2">
+                Clave pública para IV (De la otra entidad):
+              </label>
+              <input
+                className="w-full px-4 py-2 mb-4 rounded"
+                id="public_value_4"
+                type="text"
+                placeholder="Clave pública para IV (no la mía)"
+                value={ks2_2}
+                onChange={(e) => setKS2_2(e.target.value)}
               />
               <button
               type="submit"

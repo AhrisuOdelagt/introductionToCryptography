@@ -28,3 +28,8 @@ console.log("Cifra:", cifra);
 
 const descifrado = await descifrarMensaje(cifra, "e71693c6c0651662328d804fb6d85df3", "29b26287c85e7eb797a1f1086cd3159f");
 console.log("Descifrado:", descifrado);*/
+
+export {
+    cifrarMensaje,
+    descifrarMensaje
+};

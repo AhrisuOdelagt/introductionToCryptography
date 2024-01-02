@@ -1,6 +1,9 @@
 import crypto from 'crypto';
+import {
+    cifrarMensaje
+} from "../helpers/AES.js";
 
-const generarTXT = async (res, username, key, content) => {
+const generarTXT = async (res, username, key, content, hexAES, hexIV) => {
     // Decodificación de la llave
     const priv = key;
     console.log(priv);
@@ -21,9 +24,12 @@ const generarTXT = async (res, username, key, content) => {
     const signature = crypto.sign('RSA-SHA256', Buffer.from(contenidoLimpio.trim()), privateKeyBuffer);
     console.log(signature.toString('base64'))
 
+    // Ciframos el contenido para colocarlo en el documento
+    const cifra = await cifrarMensaje(contenidoLimpio, hexAES, hexIV);
+
     // Colocamos la firma dentro del archivo
     const firma = `Documento firmado por ${username} con la firma: ${signature.toString('base64')}`;
-    const full = `${contenidoLimpio.trim()}\n\n${firma}`;
+    const full = `${cifra.trim()}\n\n${firma}`;
 
     // Generamos el .txt
     console.log("\n" + full)
